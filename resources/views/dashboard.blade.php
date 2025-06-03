@@ -1,36 +1,41 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Dashboard') }}
-        </h2>
-    </x-slot>
+    <div class="p-6">
+        <h1 class="text-2xl font-bold mb-6">Dashboard</h1>
 
-    <div class="py-6">
-        <!-- Welcome Card -->
-        <div class="bg-[#FFCDB2] rounded-lg p-4 mb-6">
-            <h3 class="text-lg font-medium text-center mb-4">Selamat Datang</h3>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="bg-[#FFCDB2] p-4 rounded-lg border border-[#E5B8A1] text-center">
-                    <p class="text-sm">Hari ini</p>
-                    <h4 class="text-2xl font-bold">Konsultasi</h4>
-                    <p class="text-3xl font-bold">20</p>
-                </div>
-
-                <div class="bg-[#FFCDB2] p-4 rounded-lg border border-[#E5B8A1] text-center">
-                    <p class="text-sm">Hari ini</p>
-                    <h4 class="text-2xl font-bold">Reservasi</h4>
-                    <p class="text-3xl font-bold">11</p>
-                </div>
+        <!-- Ringkasan Statistik -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-2xl shadow">
+                <p class="text-gray-500">Total Pelanggan</p>
+                <h2 class="text-3xl font-bold">{{ $totalPelanggan }}</h2>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow">
+                <p class="text-gray-500">Total Konsultasi</p>
+                <h2 class="text-3xl font-bold">{{ $totalKonsultasi }}</h2>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow">
+                <p class="text-gray-500">Total Pembayaran (Diterima)</p>
+                <h2 class="text-3xl font-bold">Rp {{ number_format($totalPembayaran, 0, ',', '.') }}</h2>
             </div>
         </div>
 
-        <!-- Chart -->
-        <div class="bg-white rounded-lg p-4 shadow overflow-hidden">
-            <div class="w-full overflow-x-auto">
-                <div class="min-w-[600px]">
-                    <canvas id="monthlyChart" height="300"></canvas>
-                </div>
+        <!-- Grafik -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Konsultasi per Bulan -->
+            <div class="bg-white p-6 rounded-2xl shadow">
+                <h2 class="text-lg font-semibold mb-4">Konsultasi per Bulan</h2>
+                <canvas id="konsultasiChart" height="200"></canvas>
+            </div>
+
+            <!-- Status Reservasi -->
+            <div class="bg-white p-6 rounded-2xl shadow">
+                <h2 class="text-lg font-semibold mb-4">Status Reservasi</h2>
+                <canvas id="statusChart" height="200"></canvas>
+            </div>
+
+            <!-- Pembayaran per Bulan -->
+            <div class="bg-white p-6 rounded-2xl shadow col-span-1 lg:col-span-2">
+                <h2 class="text-lg font-semibold mb-4">Total Pembayaran per Bulan</h2>
+                <canvas id="pembayaranChart" height="100"></canvas>
             </div>
         </div>
     </div>
@@ -38,42 +43,72 @@
     @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const ctx = document.getElementById('monthlyChart').getContext('2d');
+        // Data dari Laravel ke JS
+        const konsultasiData = @json($konsultasiPerBulan);
+        const statusReservasiData = @json($statusReservasi);
+        const pembayaranPerBulan = @json($pembayaranPerBulan);
 
-            const monthlyData = {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        // Utility bulan
+        const bulan = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+
+        // Grafik Konsultasi per Bulan
+        new Chart(document.getElementById('konsultasiChart'), {
+            type: 'bar',
+            data: {
+                labels: konsultasiData.map(item => bulan[item.bulan - 1]),
                 datasets: [{
-                        label: 'Konsultasi',
-                        data: [1000, 1500, 2000, 1400, 2600, 1800, 2700, 2000, 1400, 1800, 2800, 3000],
-                        borderColor: '#4F46E5',
-                        backgroundColor: 'transparent',
-                        tension: 0.4
-                    },
-                    {
-                        label: 'Reservasi',
-                        data: [800, 1200, 1800, 1200, 2200, 1600, 2400, 1800, 1200, 1600, 2600, 2800],
-                        borderColor: '#10B981',
-                        backgroundColor: 'transparent',
-                        tension: 0.4
-                    }
-                ]
-            };
-
-            new Chart(ctx, {
-                type: 'line',
-                data: monthlyData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 3500
-                        }
+                    label: 'Jumlah Konsultasi',
+                    backgroundColor: '#3b82f6',
+                    data: konsultasiData.map(item => item.total),
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
                     }
                 }
-            });
+            }
+        });
+
+        // Pie Chart Status Reservasi
+        new Chart(document.getElementById('statusChart'), {
+            type: 'pie',
+            data: {
+                labels: statusReservasiData.map(item => item.status),
+                datasets: [{
+                    backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#6366f1'],
+                    data: statusReservasiData.map(item => item.total),
+                }]
+            },
+            options: {
+                responsive: true,
+            }
+        });
+
+        // Line Chart Pembayaran per Bulan
+        new Chart(document.getElementById('pembayaranChart'), {
+            type: 'line',
+            data: {
+                labels: pembayaranPerBulan.map(item => bulan[item.bulan - 1]),
+                datasets: [{
+                    label: 'Total Pembayaran',
+                    backgroundColor: '#6366f1',
+                    borderColor: '#6366f1',
+                    data: pembayaranPerBulan.map(item => item.total),
+                    tension: 0.3,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true
+                    }
+                }
+            }
         });
     </script>
     @endpush

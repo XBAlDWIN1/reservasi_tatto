@@ -11,8 +11,12 @@ export default {
 
     theme: {
         extend: {
+            colors: {
+                accent: '#C25E1C',
+            },
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                merriweather: ['Merriweather', 'serif'],
             },
         },
     },

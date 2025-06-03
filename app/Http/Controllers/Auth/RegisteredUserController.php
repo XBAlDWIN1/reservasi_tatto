@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
+use Spatie\Permission\Models\Role;
 
 class RegisteredUserController extends Controller
 {
@@ -29,11 +30,17 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
+        $request->validate(
+            [
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+                'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            ],
+            [
+                'email.unique' => 'Email Sudah Terdaftar.',
+                'email.lowercase' => 'Email Harus Dalam Huruf Kecil.',
+            ]
+        );
 
         $user = User::create([
             'name' => $request->name,
@@ -43,8 +50,16 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
+        $role = Role::where('name', 'Pengguna')->first();
+
+        $user->assignRole($role->id);
+
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        if ($user->hasRole('Pengguna')) {
+            return redirect()->route('user.reservasi.index');
+        }
+
+        return redirect()->route('dashboard');
     }
 }

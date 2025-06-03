@@ -14,9 +14,18 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
+
+<style>
+    [x-cloak] {
+        display: none !important;
+    }
+</style>
 
 <body class="font-sans antialiased">
     <div x-data="{ sidebarOpen: false }" class="flex h-screen bg-white">
@@ -67,6 +76,7 @@
             <footer class="bg-[#C25E1C] h-12"></footer>
         </div>
     </div>
+    @stack('scripts')
 </body>
 
 </html>
