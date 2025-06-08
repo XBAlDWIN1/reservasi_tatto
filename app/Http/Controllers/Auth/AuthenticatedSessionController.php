@@ -31,7 +31,7 @@ class AuthenticatedSessionController extends Controller
         $user = Auth::user();
 
         if ($user->hasRole('Pengguna')) {
-            return redirect()->route('user.reservasi.index');
+            return redirect()->route('dashboard');
         }
 
         return redirect()->route('dashboard');

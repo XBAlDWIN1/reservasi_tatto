@@ -54,12 +54,6 @@ class RegisteredUserController extends Controller
 
         $user->assignRole($role->id);
 
-        Auth::login($user);
-
-        if ($user->hasRole('Pengguna')) {
-            return redirect()->route('user.reservasi.index');
-        }
-
-        return redirect()->route('dashboard');
+        return redirect()->route('login')->with('success', 'Akun berhasil dibuat. Silakan masuk.');
     }
 }
