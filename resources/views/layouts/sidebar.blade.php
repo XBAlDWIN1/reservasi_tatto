@@ -115,6 +115,16 @@
     </x-sidebar-nav-link>
     @endrole
 
+    <!-- Rules hanya untuk admin -->
+    @role('Admin')
+    <x-sidebar-nav-link :href="route('rules.index')" :active="request()->routeIs('rules.*')" class="hover:bg-[#FFCDB2]">
+        <x-slot name="icon">
+            <ion-icon name="code-slash-outline" class="text-xl mr-3"></ion-icon>
+        </x-slot>
+        {{ __('Rules') }}
+    </x-sidebar-nav-link>
+    @endrole
+
     <!-- Artis Tato hanya untuk admin dan owner -->
     @role('Admin')
     <x-sidebar-nav-link :href="route('artis_tatos.index')" :active="request()->routeIs('artis_tatos.*')" class="hover:bg-[#FFCDB2]">

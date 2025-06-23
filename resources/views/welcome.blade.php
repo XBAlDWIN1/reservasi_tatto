@@ -16,7 +16,7 @@
             </p>
 
             <div class="flex justify-center md:justify-start mt-6">
-                <a href="{{ route('artis.list') }}"
+                <a href="{{ route('konsultasi.create') }}"
                     class="bg-orange-500 hover:bg-orange-600 text-white text-base px-6 py-3 rounded-full shadow-lg transition duration-300">
                     Get Started
                 </a>

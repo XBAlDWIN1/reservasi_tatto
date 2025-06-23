@@ -11,16 +11,10 @@
             <form method="POST" action="{{ route('konsultasi.store') }}" enctype="multipart/form-data" class="relative z-10 flex flex-col md:flex-row w-full space-y-6 md:space-y-0 md:space-x-6">
                 @csrf
                 <input type="hidden" name="id_pengguna" value="{{ auth()->id() }}">
-                <input type="hidden" name="id_artis_tato" value="{{ $id_artis_tato }}">
 
                 <!-- Kiri: Form input -->
                 <div class="md:w-1/2 space-y-4 text-sm text-black">
                     <h2 class="text-xl text-center font-bold">Form Konsultasi</h2>
-
-                    <div>
-                        <x-input-label value="Artis Tato" variant="primary" />
-                        <x-text-input type="text" value="{{ $nama_artis_tato }}" class="w-full" disabled />
-                    </div>
 
                     <div>
                         <x-input-label value="Ukuran Tato" variant="primary" />
@@ -60,6 +54,28 @@
                             @endforeach
                         </select>
                         @error('id_kategori')
+                        <div class="text-red-500 text-xs mt-1">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div>
+                        <x-input-label value="Desain" variant="primary" />
+                        <select name="jenis_desain" class="w-full border-none px-3 py-2 rounded-full">
+                            <option value="Flat">Flat</option>
+                            <option value="3D">3D</option>
+                            <option value="Realistic">Realistic</option>
+                            <option value="Custom">Custom</option>
+                        </select>
+                        @error('jenis_desain')
+                        <div class="text-red-500 text-xs mt-1">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="space-y-2">
+                        <x-input-label value="Warna Tato" variant="primary" />
+                        <select name="warna" class="w-full border-none px-3 py-2 rounded-full">
+                            <option value="Satu Warna">Satu Warna</option>
+                            <option value="Warna">Lebih dari Satu Warna</option>
+                        </select>
+                        @error('warna')
                         <div class="text-red-500 text-xs mt-1">{{ $message }}</div>
                         @enderror
                     </div>

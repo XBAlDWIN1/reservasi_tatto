@@ -19,6 +19,9 @@ class Konsultasi extends Model
         'jadwal_konsultasi',
         'gambar',
         'status',
+        'kompleksitas',
+        'durasi_estimasi',
+        'biaya_tambahan',
     ];
 
     public function pengguna()
@@ -44,4 +47,9 @@ class Konsultasi extends Model
     {
         return $this->hasOne(Reservasi::class, 'id_konsultasi', 'id_konsultasi');
     }
+
+    protected $casts = [
+        'kondisi_if' => 'array',
+        'hasil_then' => 'array',
+    ];
 }

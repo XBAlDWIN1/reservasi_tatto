@@ -7,7 +7,9 @@ use App\Models\Konsultasi;
 use Illuminate\Support\Facades\Auth;
 use App\Models\LokasiTato;
 use App\Models\Kategori;
-use App\Models\ArtisKategori;
+use App\Models\ArtisTato;
+use App\Models\RuleSpk;
+use Carbon\Carbon;
 
 class UserKonsultasiController extends Controller
 {
@@ -16,52 +18,65 @@ class UserKonsultasiController extends Controller
     {
         $userId = Auth::id();
 
-        $konsultasis = Konsultasi::with('reservasi')->where('id_pengguna', $userId)
-            ->with('artisTato', 'lokasiTato', 'kategori')
+        // Ambil semua konsultasi milik user, dengan relasi terkait
+        $konsultasis = Konsultasi::with(['reservasi', 'artisTato', 'lokasiTato', 'kategori'])
+            ->where('id_pengguna', $userId)
             ->paginate(10);
 
-        // Tambahkan total_biaya ke setiap item
         foreach ($konsultasis as $konsultasi) {
             $panjang = $konsultasi->panjang ?? 0;
             $lebar = $konsultasi->lebar ?? 0;
-            $namaKategori = strtolower($konsultasi->kategori->nama_kategori ?? '');
-
             $luas = $panjang * $lebar;
 
-            if (str_contains($namaKategori, 'mesin')) {
-                $harga_per_cm2 = 15000;
-                $minimal = 800000;
-            } elseif (str_contains($namaKategori, 'handpoke') || str_contains($namaKategori, 'hand tap')) {
-                $harga_per_cm2 = 16000;
-                $minimal = 900000;
+            $kategoriNama = strtolower(optional($konsultasi->kategori)->nama_kategori ?? '');
+
+            // Tentukan harga berdasarkan kategori
+            if (str_contains($kategoriNama, 'mesin')) {
+                $hargaPerCm = 15000;
+                $hargaMinimal = 800000;
+            } elseif (str_contains($kategoriNama, 'handpoke') || str_contains($kategoriNama, 'hand tap')) {
+                $hargaPerCm = 16000;
+                $hargaMinimal = 900000;
             } else {
-                $harga_per_cm2 = 15000;
-                $minimal = 800000;
+                $hargaPerCm = 15000;
+                $hargaMinimal = 800000;
             }
 
-            $total = $luas * $harga_per_cm2;
-            $total = max($total, $minimal);
+            $total = max($luas * $hargaPerCm, $hargaMinimal);
 
-            // Tambahkan atribut virtual
+            // Tambahkan biaya tambahan jika ada
+            if (!empty($konsultasi->biaya_tambahan)) {
+                $total += $konsultasi->biaya_tambahan;
+            }
+
+            // Tambahkan atribut virtual ke model
             $konsultasi->total_biaya = $total;
         }
 
         return view('user.konsultasi.index', compact('konsultasis'));
     }
 
-    public function create(Request $request)
+
+    // public function create(Request $request)
+    // {
+    //     $id_artis_tato = $request->query('id_artis_tato');
+    //     $nama_artis_tato = $request->query('nama_artis_tato');
+    //     $lokasi_tatos = LokasiTato::all();
+
+    //     // Ambil id_kategori dari artis_kategoris
+    //     $kategoriIds = ArtisKategori::where('id_artis_tato', $id_artis_tato)->pluck('id_kategori');
+
+    //     // Ambil data kategori berdasarkan id tersebut
+    //     $kategoris = Kategori::whereIn('id_kategori', $kategoriIds)->get();
+
+    //     return view('user.konsultasi.create', compact('id_artis_tato', 'nama_artis_tato', 'lokasi_tatos', 'kategoris'));
+    // }
+    public function create()
     {
-        $id_artis_tato = $request->query('id_artis_tato');
-        $nama_artis_tato = $request->query('nama_artis_tato');
         $lokasi_tatos = LokasiTato::all();
+        $kategoris = Kategori::all();
 
-        // Ambil id_kategori dari artis_kategoris
-        $kategoriIds = ArtisKategori::where('id_artis_tato', $id_artis_tato)->pluck('id_kategori');
-
-        // Ambil data kategori berdasarkan id tersebut
-        $kategoris = Kategori::whereIn('id_kategori', $kategoriIds)->get();
-
-        return view('user.konsultasi.create', compact('id_artis_tato', 'nama_artis_tato', 'lokasi_tatos', 'kategoris'));
+        return view('user.konsultasi.create', compact('lokasi_tatos', 'kategoris'));
     }
 
     public function store(Request $request)
@@ -70,7 +85,6 @@ class UserKonsultasiController extends Controller
 
         $request->validate([
             'id_pengguna' => 'required',
-            'id_artis_tato' => 'required',
             'id_lokasi_tato' => 'required',
             'id_kategori' => 'required',
             'panjang' => 'required|numeric',
@@ -78,44 +92,110 @@ class UserKonsultasiController extends Controller
             'gambar' => 'required|image|mimes:jpeg,png,jpg|max:2048',
             'jadwal_tanggal' => 'required|date|after_or_equal:today',
             'jadwal_jam' => 'required|date_format:H:i',
-            'status' => 'nullable|in:menunggu,diterima,ditolak',
-        ], [
-            'id_pengguna.required' => 'Pengguna wajib diisi.',
-            'id_artis_tato.required' => 'Artis tato wajib diisi.',
-            'id_lokasi_tato.required' => 'Lokasi tato wajib diisi.',
-            'id_kategori.required' => 'Kategori wajib diisi.',
-            'panjang.required' => 'Panjang wajib diisi.',
-            'panjang.numeric' => 'Panjang harus berupa angka.',
-            'lebar.required' => 'Lebar wajib diisi.',
-            'lebar.numeric' => 'Lebar harus berupa angka.',
-            'jadwal_tanggal.required' => 'Tanggal wajib diisi.',
-            'jadwal_tanggal.date' => 'Tanggal tidak valid.',
-            'jadwal_jam.required' => 'Jam wajib diisi.',
-            'jadwal_jam.date_format' => 'Jam tidak valid. Format harus HH:MM.',
-            'jadwal_tanggal.after_or_equal' => 'Tanggal harus hari ini atau setelahnya.',
-            'gambar.required' => 'Gambar wajib diisi.',
-            'gambar.image' => 'Gambar harus berupa file gambar.',
-            'gambar.max' => 'Gambar tidak boleh lebih dari 2MB.',
-            'status.in' => 'Status tidak valid.',
+            'warna' => 'required|in:Warna,Satu Warna',
         ]);
 
-        $jadwalKonsultasi = $request->jadwal_tanggal . ' ' . $request->jadwal_jam;
+        $panjang = $request->panjang;
+        $lebar = $request->lebar;
+        if ($panjang * $lebar < 50) {
+            $ukuran = 'kecil';
+        } elseif ($panjang * $lebar <= 99) {
+            $ukuran = 'sedang';
+        } else {
+            $ukuran = 'besar';
+        }
 
-        $request->merge(['jadwal_konsultasi' => $jadwalKonsultasi]);
+        $facts = [
+            'desain' => strtolower($request->jenis_desain),
+            'ukuran' => $ukuran,
+            'lokasi_tubuh' => strtolower(optional($request->lokasi_tato)->nama_lokasi_tato ?? ''),
+            'permintaan_khusus' => strtolower($request->warna),
+        ];
 
-        $data = $request->all();
+        // Ambil semua rule dan ubah jadi array asosiatif
+        $rules = RuleSpk::all()->map(function ($rule) {
+            return [
+                'nama' => $rule->nama,
+                'if' => is_string($rule->kondisi_if) ? json_decode($rule->kondisi_if, true) : $rule->kondisi_if,
+                'then' => is_string($rule->hasil_then) ? json_decode($rule->hasil_then, true) : $rule->hasil_then,
+
+            ];
+        })->toArray();
+
+        $applied = [];
+        do {
+            $changed = false;
+            foreach ($rules as $rule) {
+                // Cek apakah semua kondisi IF match dengan facts
+                $match = collect($rule['if'])->every(fn($v, $k) => isset($facts[$k]) && $facts[$k] == strtolower($v));
+
+                if ($match && !in_array($rule['nama'], $applied)) {
+                    // Tambahkan hasil THEN ke facts
+                    foreach ($rule['then'] as $k => $v) {
+                        $facts[$k] = $v;
+                    }
+                    $applied[] = $rule['nama'];
+                    $changed = true;
+                }
+            }
+        } while ($changed);
+
+        $data = $request->except(['jadwal_jam', 'gambar']);
+        $data['jadwal_konsultasi'] = $request->jadwal_tanggal . ' ' . $request->jadwal_jam;
+
+        // Terapkan hasil dari facts jika ada
+        if (isset($facts['kategori_kompleksitas'])) {
+            $data['kompleksitas'] = $facts['kategori_kompleksitas'];
+        }
+
+        if (isset($facts['durasi_estimasi'])) {
+            $jam = explode(' ', $facts['durasi_estimasi'])[0];
+            $data['durasi_estimasi'] = Carbon::createFromTimeString($jam)->format('H:i');
+        }
+
+        if (isset($facts['biaya_tambahan'])) {
+            $data['biaya_tambahan'] = $facts['biaya_tambahan'];
+        }
+
+        $data['kompleksitas'] = $data['kompleksitas'] ?? 'sedang';
+        $data['durasi_estimasi'] = $data['durasi_estimasi'] ?? '03:00';
+        $data['biaya_tambahan'] = $data['biaya_tambahan'] ?? 0;
+
+        // Rekomendasi artis
+        if (isset($facts['artist_rekomendasi'])) {
+            $kategori = strtolower($facts['artist_rekomendasi']);
+            $tahunIni = Carbon::now()->year;
+
+            if ($kategori === 'senior') {
+                $artis = ArtisTato::all()->filter(function ($a) use ($tahunIni) {
+                    return ($tahunIni - $a->tahun_menato) >= 5;
+                })->sortBy('tahun_menato')->first();
+            } elseif ($kategori === 'junior') {
+                $artis = ArtisTato::all()->filter(function ($a) use ($tahunIni) {
+                    return ($tahunIni - $a->tahun_menato) < 5;
+                })->sortByDesc('tahun_menato')->first();
+            } else {
+                $artis = null;
+            }
+
+            if ($artis) {
+                $data['id_artis_tato'] = $artis->id_artis_tato;
+            }
+        }
+
+        // Upload gambar
         if ($request->hasFile('gambar')) {
             $data['gambar'] = $request->file('gambar')->store('konsultasi', 'public');
         }
 
         Konsultasi::create($data);
-        // redirect berdasarkan role
+
+        // Redirect
         if ($request->user()->hasRole('Pengguna')) {
             return redirect()->route('konsultasi.index')->with('success', 'Konsultasi berhasil dibuat.');
         } elseif ($request->user()->hasRole('Admin')) {
             return redirect()->route('konsultasis.index')->with('success', 'Data Konsultasi berhasil ditambahkan.');
         }
-        // Jika tidak ada role yang sesuai, redirect ke halaman sebelumnya
         return redirect()->back()->with('success', 'Data Konsultasi berhasil ditambahkan.');
     }
 }

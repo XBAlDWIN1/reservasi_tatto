@@ -16,6 +16,7 @@ use App\Http\Controllers\PembayaranController;
 use App\Http\Controllers\UserReservasiController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\RuleSpkController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -59,6 +60,7 @@ Route::middleware(['auth', 'role:Admin'])->group(function () {
     Route::resource('artis-kategori', ArtisKategoriController::class);
     Route::resource('artis_tatos', ArtisTatoController::class);
     Route::resource('portfolios', PortfolioController::class)->except(['index', 'show']);
+    Route::resource('rules', RuleSpkController::class);
 });
 
 Route::middleware(['auth', 'role:Admin|Pengelola'])->group(function () {
