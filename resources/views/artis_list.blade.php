@@ -56,14 +56,6 @@
                         <a href="https://tiktok.com/@{{ $artis->tiktok }}" target="_blank" class="text-orange-500 hover:underline">{{ '@' . $artis->tiktok }}</a>
                     </p>
                     @endif
-
-                    <div class="mt-auto pt-4">
-                        <x-primary-link
-                            href="{{ route('konsultasi.create', ['id_artis_tato' => $artis->id_artis_tato, 'nama_artis_tato' => $artis->nama_artis_tato]) }}"
-                            class="w-full justify-center">
-                            Konsultasi
-                        </x-primary-link>
-                    </div>
                 </div>
             </div>
             @empty

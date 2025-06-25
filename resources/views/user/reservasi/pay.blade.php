@@ -60,7 +60,7 @@
                     <!-- QR Code -->
                     <div class="text-center pt-4 border-t border-dashed">
                         <h4 class="font-semibold mb-2">Scan QR untuk Pembayaran</h4>
-                        <img src="{{ asset('img/logo.jpeg') }}" alt="QR Code" class="mx-auto h-40 rounded border border-gray-200 shadow">
+                        <img src="{{ asset('img/QR.jpg') }}" alt="QR Code" class="mx-auto h-40 rounded border border-gray-200 shadow">
                         <p class="text-sm text-gray-500 mt-2">Gunakan aplikasi e-wallet untuk scan dan bayar.</p>
                     </div>
                 </div>

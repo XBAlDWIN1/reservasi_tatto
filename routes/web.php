@@ -51,6 +51,8 @@ Route::middleware('auth')->group(function () {
             return view('user.reservasi.success');
         })->name('success');
     });
+    Route::patch('/user/reservasi/{id}/pembayaran', [UserReservasiController::class, 'updatePembayaran'])
+        ->name('user.reservasi.pembayaran.update');
     Route::get('/user/reservasi/{id}/invoice', [ReservasiController::class, 'cetakInvoice'])->name('user.reservasi.invoice');
 });
 

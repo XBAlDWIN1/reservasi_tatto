@@ -5,48 +5,61 @@
         @if ($reservasi->isEmpty())
         <p class="text-gray-500 text-center">Belum ada reservasi yang tercatat.</p>
         @else
-        <div class="space-y-4">
+        <div class="space-y-6">
             @foreach ($reservasi as $item)
             @php
-            $pelangganData = $pelanggan->firstWhere('id_pelanggan', $item->id_pelanggan);
-            $konsultasiData = $konsultasi->firstWhere('id_konsultasi', $item->id_konsultasi);
-            $pembayaranData = $pembayaran->firstWhere('id_reservasi', $item->id_reservasi);
+            $pelanggan = $item->pelanggan;
+            $konsultasi = $item->konsultasi;
+            $kategori = $konsultasi->kategori ?? null;
+            $pembayaran = $item->pembayaran->first() ?? null;
             @endphp
 
-            <div class="bg-white shadow rounded-lg p-4 border">
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="text-lg font-semibold">Reservasi #{{ $item->id_reservasi }}</h3>
-                    <span class="text-sm px-2 py-1 rounded-full {{ $item->status === 'menunggu' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800' }}">
+            <div class="bg-white border rounded-xl shadow-sm p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">
+                        Reservasi #{{ $item->id_reservasi }}
+                    </h3>
+                    <span class="text-sm px-3 py-1 rounded-full 
+                                {{ $item->status === 'menunggu' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800' }}">
                         {{ ucfirst($item->status) }}
                     </span>
                 </div>
 
-                <p><span class="font-medium">Nama Pelanggan:</span> {{ $pelangganData->nama_lengkap ?? '-' }}</p>
-                <p><span class="font-medium">Telepon:</span> {{ $pelangganData->telepon ?? '-' }}</p>
+                <div class="space-y-1 text-sm text-gray-700">
+                    <p><span class="font-medium">Nama Pelanggan:</span> {{ $pelanggan->nama_lengkap ?? '-' }}</p>
+                    <p><span class="font-medium">Telepon:</span> {{ $pelanggan->telepon ?? '-' }}</p>
 
-                <div class="mt-2">
-                    <p class="font-medium">Detail Konsultasi:</p>
-                    <ul class="text-sm list-disc list-inside text-gray-700">
-                        <li>Ukuran: {{ $konsultasiData->panjang ?? '?' }} x {{ $konsultasiData->lebar ?? '?' }} cm</li>
-                        <li>Kategori: {{ $konsultasiData->kategori->nama_kategori ?? '-' }}</li>
-                    </ul>
+                    <div class="mt-3">
+                        <p class="font-medium mb-1">Detail Konsultasi:</p>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>Ukuran: {{ $konsultasi->panjang ?? '?' }} x {{ $konsultasi->lebar ?? '?' }} cm</li>
+                            <li>Kategori: {{ $kategori->nama_kategori ?? '-' }}</li>
+                        </ul>
+                    </div>
+
+                    <div class="mt-3">
+                        <p><span class="font-medium">Biaya Dasar:</span> Rp{{ number_format($item->biaya_dasar, 0, ',', '.') }}</p>
+                        <p><span class="font-medium">Biaya Tambahan:</span> Rp{{ number_format($item->biaya_tambahan, 0, ',', '.') }}</p>
+                        <p><span class="font-medium">Total Pembayaran:</span> Rp{{ number_format($item->total_biaya, 0, ',', '.') }}</p>
+                        <p><span class="font-medium">Status Pembayaran:</span>
+                            {{ ucfirst($pembayaran->status ?? 'Belum Dibayar') }}
+                        </p>
+                    </div>
                 </div>
 
-                <div class="mt-2">
-                    <p><span class="font-medium">Total Pembayaran:</span> Rp{{ number_format($item->total_pembayaran, 0, ',', '.') }}</p>
-                    <p><span class="font-medium">Status Pembayaran:</span> {{ ucfirst($pembayaranData->status ?? 'belum dibayar') }}</p>
-                </div>
-
-                <div class="mt-3">
-                    <a href="{{ route('user.reservasi.show', ['id_reservasi' => $item->id_reservasi]) }}" class="text-blue-600 text-sm hover:underline">Lihat Detail</a>
+                <div class="mt-4">
+                    <a href="{{ route('user.reservasi.show', $item->id_reservasi) }}"
+                        class="text-blue-600 text-sm hover:underline">
+                        Lihat Detail
+                    </a>
                 </div>
             </div>
             @endforeach
         </div>
         @endif
+
         <div class="mt-6">
             {{ $reservasi->links() }}
         </div>
-
     </div>
 </x-app-layout>

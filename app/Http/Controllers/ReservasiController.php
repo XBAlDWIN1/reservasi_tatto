@@ -87,7 +87,11 @@ class ReservasiController extends Controller
         $reservasi = Reservasi::with(['pelanggan', 'konsultasi.kategori', 'konsultasi.lokasiTato', 'konsultasi.artisTato'])
             ->findOrFail($id);
 
-        $pdf = Pdf::loadView('user.reservasi.invoice', compact('reservasi'));
+        $total_biaya = $reservasi->total_pembayaran ?? 0;
+        $biaya_tambahan = $reservasi->konsultasi->biaya_tambahan ?? 0;
+        $biaya_dasar = $total_biaya - $biaya_tambahan;
+
+        $pdf = Pdf::loadView('user.reservasi.invoice', compact('reservasi', 'total_biaya', 'biaya_tambahan', 'biaya_dasar'));
         return $pdf->stream('kwitansi-reservasi.pdf'); // Bisa juga ->download() untuk langsung mengunduh
     }
 

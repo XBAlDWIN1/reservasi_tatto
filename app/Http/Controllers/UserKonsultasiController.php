@@ -12,6 +12,7 @@ use App\Models\RuleSpk;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Carbon\CarbonInterval;
+use App\Helpers\HargaHelper;
 
 class UserKonsultasiController extends Controller
 {
@@ -26,32 +27,23 @@ class UserKonsultasiController extends Controller
             ->paginate(10);
 
         foreach ($konsultasis as $konsultasi) {
-            $panjang = $konsultasi->panjang ?? 0;
-            $lebar = $konsultasi->lebar ?? 0;
-            $luas = $panjang * $lebar;
 
-            $kategoriNama = strtolower(optional($konsultasi->kategori)->nama_kategori ?? '');
+            // Hitung biaya dasar
+            $biayaDasar = HargaHelper::hitungHargaDasar(
+                $konsultasi->panjang ?? 0,
+                $konsultasi->lebar ?? 0,
+                optional($konsultasi->kategori)->nama_kategori ?? ''
+            );
 
-            // Tentukan harga berdasarkan kategori
-            if (str_contains($kategoriNama, 'mesin')) {
-                $hargaPerCm = 15000;
-                $hargaMinimal = 800000;
-            } elseif (str_contains($kategoriNama, 'handpoke') || str_contains($kategoriNama, 'hand tap')) {
-                $hargaPerCm = 16000;
-                $hargaMinimal = 900000;
-            } else {
-                $hargaPerCm = 15000;
-                $hargaMinimal = 800000;
-            }
+            // Ambil biaya tambahan
+            $biayaTambahan = $konsultasi->biaya_tambahan ?? 0;
 
-            $total = max($luas * $hargaPerCm, $hargaMinimal);
-
-            // Tambahkan biaya tambahan jika ada
-            if (!empty($konsultasi->biaya_tambahan)) {
-                $total += $konsultasi->biaya_tambahan;
-            }
+            // Total biaya = dasar + tambahan
+            $total = $biayaDasar + $biayaTambahan;
 
             // Tambahkan atribut virtual ke model
+            $konsultasi->biaya_dasar = $biayaDasar;
+            $konsultasi->biaya_tambahan = $biayaTambahan;
             $konsultasi->total_biaya = $total;
         }
 
@@ -87,7 +79,7 @@ class UserKonsultasiController extends Controller
 
         if ($luas < 50) {
             $ukuran = 'kecil';
-        } elseif ($luas <= 99) {
+        } elseif ($luas >= 50 && $luas <= 70) {
             $ukuran = 'sedang';
         } else {
             $ukuran = 'besar';
@@ -156,6 +148,7 @@ class UserKonsultasiController extends Controller
         $data['durasi_estimasi'] = $data['durasi_estimasi'] ?? '03:00';
         $data['biaya_tambahan'] = $data['biaya_tambahan'] ?? 0;
 
+        // Default ke artis pertama jika tidak ada rekomendasi
         if (isset($facts['artist_rekomendasi'])) {
             $kategori = strtolower($facts['artist_rekomendasi']);
             $tahunIni = Carbon::now()->year;
@@ -169,7 +162,19 @@ class UserKonsultasiController extends Controller
                 return false;
             })->sortBy('tahun_menato')->first();
 
-            $data['id_artis_tato'] = $artis->id_artis_tato ?? ArtisTato::where('tahun_menato', '<', $tahunIni)->min('id_artis_tato');
+            $data['id_artis_tato'] = $artis->id_artis_tato;
+        }
+
+        // ✅ Tambahan fallback jika `id_artis_tato` belum terisi
+        if (!isset($data['id_artis_tato'])) {
+            // Pakai default artis pertama
+            $defaultArtis = ArtisTato::orderBy('tahun_menato', 'asc')->first();
+            if (!$defaultArtis) {
+                return redirect()->back()->withErrors([
+                    'id_artis_tato' => 'Tidak ada artis tato tersedia saat ini.'
+                ])->withInput();
+            }
+            $data['id_artis_tato'] = $defaultArtis->id_artis_tato;
         }
 
         $mulai = Carbon::parse($data['jadwal_konsultasi']);

@@ -8,40 +8,106 @@ use App\Models\Pembayaran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Reservasi;
+use App\Helpers\HargaHelper;
+use Illuminate\Support\Facades\Storage;
 
 class UserReservasiController extends Controller
 {
     public function index()
     {
-        $reservasi = Reservasi::where('id_pengguna', Auth::id())->paginate(5);
+        $userId = Auth::id();
 
-        $pelanggan = Pelanggan::where('id_pengguna', Auth::id())->get();
-        $konsultasi = Konsultasi::where('id_pengguna', Auth::id())->get();
-        $pembayaran = Pembayaran::where('id_pengguna', Auth::id())->get();
-        return view('user.reservasi.index', compact('reservasi', 'pelanggan', 'konsultasi', 'pembayaran'));
+        $reservasi = Reservasi::with([
+            'konsultasi.kategori',
+            'pelanggan',
+            'pembayaran' => function ($q) {
+                $q->latest(); // Ambil pembayaran terbaru jika ada lebih dari satu
+            }
+        ])
+            ->where('id_pengguna', $userId)
+            ->orderByDesc('created_at')
+            ->paginate(5);
+
+        // Hitung total biaya untuk setiap reservasi
+        foreach ($reservasi as $item) {
+            $konsultasi = $item->konsultasi;
+
+            $biayaDasar = HargaHelper::hitungHargaDasar(
+                $konsultasi->panjang ?? 0,
+                $konsultasi->lebar ?? 0,
+                optional($konsultasi->kategori)->nama_kategori ?? ''
+            );
+            $biayaTambahan = $konsultasi->biaya_tambahan ?? 0;
+            $totalBiaya = $biayaDasar + $biayaTambahan;
+
+            $item->biaya_dasar = $biayaDasar;
+            $item->biaya_tambahan = $biayaTambahan;
+            $item->total_biaya = $totalBiaya;
+        }
+
+        return view('user.reservasi.index', compact('reservasi'));
     }
 
     public function show($id)
     {
-        $reservasi = Reservasi::with(['pelanggan', 'konsultasi'])->findOrFail($id);
+        $reservasi = Reservasi::with([
+            'pelanggan',
+            'konsultasi.kategori',
+            'pembayaran' => function ($query) {
+                $query->latest();
+            }
+        ])->findOrFail($id);
+
+        // Hitung biaya
+        $konsultasi = $reservasi->konsultasi;
+
+        $biayaDasar = HargaHelper::hitungHargaDasar(
+            $konsultasi->panjang ?? 0,
+            $konsultasi->lebar ?? 0,
+            optional($konsultasi->kategori)->nama_kategori ?? ''
+        );
+        $biayaTambahan = $konsultasi->biaya_tambahan ?? 0;
+        $totalBiaya = $biayaDasar + $biayaTambahan;
+
+        $reservasi->biaya_dasar = $biayaDasar;
+        $reservasi->biaya_tambahan = $biayaTambahan;
+        $reservasi->total_biaya = $totalBiaya;
+
         return view('user.reservasi.show', compact('reservasi'));
     }
 
-    private function getTotalBiaya($panjang, $lebar, $kategori)
+    public function updatePembayaran(Request $request, $id)
     {
-        $luas = $panjang * $lebar;
-        $harga_per_cm2 = 15000;
-        $minimal = 800000;
+        $reservasi = Reservasi::with('pembayaran')
+            ->where('id_reservasi', $id)
+            ->where('id_pengguna', Auth::id())
+            ->firstOrFail();
 
-        if (str_contains(strtolower($kategori), 'mesin')) {
-            $harga_per_cm2 = 15000;
-            $minimal = 800000;
-        } elseif (str_contains(strtolower($kategori), 'handpoke') || str_contains(strtolower($kategori), 'hand tap')) {
-            $harga_per_cm2 = 16000;
-            $minimal = 900000;
+        if (!$reservasi->pembayaran || $reservasi->pembayaran->status !== 'ditolak') {
+            return redirect()->back()->with('error', 'Pembayaran hanya bisa diperbarui jika statusnya ditolak.');
         }
 
-        return max($luas * $harga_per_cm2, $minimal);
+        $request->validate([
+            'bukti_pembayaran' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        $file = $request->file('bukti_pembayaran');
+        $filename = $file->hashName(); // Gunakan hashName seperti admin
+        $file->storeAs('bukti_pembayaran', $filename, 'public');
+
+        // Hapus bukti lama jika ada
+        if ($reservasi->pembayaran->bukti_pembayaran) {
+            Storage::disk('public')->delete('bukti_pembayaran/' . $reservasi->pembayaran->bukti_pembayaran);
+        }
+
+        // Update pembayaran
+        $reservasi->pembayaran->update([
+            'bukti_pembayaran' => $filename,
+            'status' => 'menunggu',
+            'catatan_penolakan' => null,
+        ]);
+
+        return redirect()->route('user.reservasi.show', $id)->with('success', 'Bukti pembayaran berhasil diperbarui dan menunggu verifikasi.');
     }
 
     public function create($id_konsultasi)
@@ -50,12 +116,14 @@ class UserReservasiController extends Controller
         $panjang = $konsultasi->panjang ?? 0;
         $lebar = $konsultasi->lebar ?? 0;
         $kategori = $konsultasi->kategori->nama_kategori ?? '';
-        $total_biaya = $this->getTotalBiaya($panjang, $lebar, $kategori);
+        $biaya_dasar = HargaHelper::hitungHargaDasar($panjang, $lebar, $kategori);
+        $biaya_tambahan = $konsultasi->biaya_tambahan ?? 0;
+        $total_biaya = $biaya_dasar + $biaya_tambahan;
 
         // Ambil pelanggan milik user
         $pelangganList = Pelanggan::where('id_pengguna', Auth::id())->get();
 
-        return view('user.reservasi.create', compact('konsultasi', 'total_biaya', 'pelangganList'));
+        return view('user.reservasi.create', compact('konsultasi', 'total_biaya', 'biaya_dasar', 'biaya_tambahan', 'pelangganList'));
     }
 
 
@@ -93,11 +161,14 @@ class UserReservasiController extends Controller
             $id_pelanggan = $pelanggan->id_pelanggan;
         }
 
-        $total_biaya = $this->getTotalBiaya(
+        $biaya_dasar = HargaHelper::hitungHargaDasar(
             $konsultasi->panjang ?? 0,
             $konsultasi->lebar ?? 0,
-            $konsultasi->kategori->nama_kategori ?? ''
+            optional($konsultasi->kategori)->nama_kategori ?? ''
         );
+
+        $biaya_tambahan = $konsultasi->biaya_tambahan ?? 0;
+        $total_biaya = $biaya_dasar + $biaya_tambahan;
 
         $reservasi = Reservasi::create([
             'id_pengguna' => $user->id,
@@ -133,11 +204,13 @@ class UserReservasiController extends Controller
         $lebar = $konsultasi->lebar ?? 0;
         $kategori = optional($konsultasi->kategori)->nama_kategori ?? '';
 
-        $total_biaya = $this->getTotalBiaya($panjang, $lebar, $kategori);
+        $biaya_dasar = HargaHelper::hitungHargaDasar($panjang, $lebar, $kategori);
+        $biaya_tambahan = $konsultasi->biaya_tambahan ?? 0;
+        $total_biaya = $biaya_dasar + $biaya_tambahan;
 
         $reservasi = Reservasi::findOrFail($id_reservasi);
 
-        return view('user.reservasi.pay', compact('reservasi', 'total_biaya', 'konsultasi'));
+        return view('user.reservasi.pay', compact('reservasi', 'total_biaya', 'biaya_dasar', 'biaya_tambahan', 'konsultasi'));
     }
 
 

@@ -35,7 +35,7 @@
 <body>
 
     <div class="header">
-        <h2>Kwitansi Reservasi</h2>
+        <h2>Kwitansi Pembayaran</h2>
     </div>
 
     <p><strong>Dari :</strong> MK TATTO ART<br>
@@ -62,7 +62,9 @@
                 <td>{{ $reservasi->konsultasi->kategori->nama_kategori ?? '-' }}</td>
                 <td>{{ $reservasi->konsultasi->lokasiTato->nama_lokasi_tato ?? '-' }}</td>
                 <td>{{ $reservasi->konsultasi->panjang ?? '-' }}x{{ $reservasi->konsultasi->lebar ?? '-' }} cm</td>
-                <td><strong>IDR {{ number_format($reservasi->total_pembayaran, 0, ',', '.') }}</strong></td>
+                <td><strong>IDR {{ number_format($biaya_dasar, 0, ',', '.') }}</strong></td>
+                <td><strong>IDR {{ number_format($biaya_tambahan, 0, ',', '.') }}</strong></td>
+                <td><strong>IDR {{ number_format($total_biaya, 0, ',', '.') }}</strong></td>
             </tr>
         </tbody>
     </table>
@@ -70,7 +72,7 @@
     <p style="text-align: right; margin-top: 20px;"><strong>Total:</strong> <span style="font-style: italic;">IDR {{ number_format($reservasi->total_pembayaran, 0, ',', '.') }}</span></p>
 
     <div class="footer">
-        <p>Terima kasih telah melakukan reservasi</p>
+        <p>Terima kasih telah menato di mk tato art</p>
     </div>
 
 </body>
