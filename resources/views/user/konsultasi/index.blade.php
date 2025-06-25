@@ -38,10 +38,15 @@
                         <li><span class="font-medium">Ukuran:</span> {{ $konsultasi->panjang ?? '-' }} x {{ $konsultasi->lebar ?? '-' }} cm</li>
                         <li><span class="font-medium">Lokasi:</span> {{ $konsultasi->lokasiTato->nama_lokasi_tato ?? '-' }}</li>
                         <li><span class="font-medium">Kategori:</span> {{ $konsultasi->kategori->nama_kategori ?? '-' }}</li>
+                        <li><span class="font-medium">Kompleksitas:</span> {{ $konsultasi->kompleksitas ?? '-' }}</li>
+                        <li><span class="font-medium">Durasi Pengerjaan:</span> {{ $konsultasi->durasi_estimasi ?? '-' }}</li>
                         <li><span class="font-medium">Jadwal:</span> {{ \Carbon\Carbon::parse($konsultasi->jadwal_konsultasi)->format('d-m-Y H:i') }}</li>
                     </ul>
 
                     <div class="flex justify-between items-center mt-4">
+                        <span class="text-lg font-bold text-indigo-600">
+                            Biaya Tambahan : Rp {{ number_format($konsultasi->biaya_tambahan ?? 0, 0, ',', '.') }}
+                        </span>
                         <span class="text-lg font-bold text-indigo-600">
                             Total: Rp {{ number_format($konsultasi->total_biaya ?? 0, 0, ',', '.') }}
                         </span>

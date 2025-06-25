@@ -27,7 +27,7 @@ class RuleSpkSeeder extends Seeder
             [
                 'nama' => 'R03',
                 'kondisi_if' => json_encode(['permintaan_khusus' => 'warna', 'kategori_kompleksitas' => 'tinggi']),
-                'hasil_then' => json_encode(['artist_rekomendasi' => 'Senior']),
+                'hasil_then' => json_encode(['artist_rekomendasi' => 'senior']),
             ],
         ]);
     }

@@ -10,6 +10,8 @@ use App\Models\Kategori;
 use App\Models\ArtisTato;
 use App\Models\RuleSpk;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use Carbon\CarbonInterval;
 
 class UserKonsultasiController extends Controller
 {
@@ -56,21 +58,6 @@ class UserKonsultasiController extends Controller
         return view('user.konsultasi.index', compact('konsultasis'));
     }
 
-
-    // public function create(Request $request)
-    // {
-    //     $id_artis_tato = $request->query('id_artis_tato');
-    //     $nama_artis_tato = $request->query('nama_artis_tato');
-    //     $lokasi_tatos = LokasiTato::all();
-
-    //     // Ambil id_kategori dari artis_kategoris
-    //     $kategoriIds = ArtisKategori::where('id_artis_tato', $id_artis_tato)->pluck('id_kategori');
-
-    //     // Ambil data kategori berdasarkan id tersebut
-    //     $kategoris = Kategori::whereIn('id_kategori', $kategoriIds)->get();
-
-    //     return view('user.konsultasi.create', compact('id_artis_tato', 'nama_artis_tato', 'lokasi_tatos', 'kategoris'));
-    // }
     public function create()
     {
         $lokasi_tatos = LokasiTato::all();
@@ -81,11 +68,9 @@ class UserKonsultasiController extends Controller
 
     public function store(Request $request)
     {
-        // dd($request->all());
-
         $request->validate([
             'id_pengguna' => 'required',
-            'id_lokasi_tato' => 'required',
+            'id_lokasi_tato' => 'required|exists:lokasi_tatos,id_lokasi_tato',
             'id_kategori' => 'required',
             'panjang' => 'required|numeric',
             'lebar' => 'required|numeric',
@@ -93,32 +78,36 @@ class UserKonsultasiController extends Controller
             'jadwal_tanggal' => 'required|date|after_or_equal:today',
             'jadwal_jam' => 'required|date_format:H:i',
             'warna' => 'required|in:Warna,Satu Warna',
+            'jenis_desain' => 'required|string'
         ]);
 
         $panjang = $request->panjang;
         $lebar = $request->lebar;
-        if ($panjang * $lebar < 50) {
+        $luas = $panjang * $lebar;
+
+        if ($luas < 50) {
             $ukuran = 'kecil';
-        } elseif ($panjang * $lebar <= 99) {
+        } elseif ($luas <= 99) {
             $ukuran = 'sedang';
         } else {
             $ukuran = 'besar';
         }
 
+        // Ambil nama lokasi dari ID
+        $lokasi = LokasiTato::find($request->id_lokasi_tato);
+
         $facts = [
             'desain' => strtolower($request->jenis_desain),
             'ukuran' => $ukuran,
-            'lokasi_tubuh' => strtolower(optional($request->lokasi_tato)->nama_lokasi_tato ?? ''),
+            'lokasi_tubuh' => strtolower(optional($lokasi)->nama_lokasi_tato ?? ''),
             'permintaan_khusus' => strtolower($request->warna),
         ];
 
-        // Ambil semua rule dan ubah jadi array asosiatif
         $rules = RuleSpk::all()->map(function ($rule) {
             return [
                 'nama' => $rule->nama,
-                'if' => is_string($rule->kondisi_if) ? json_decode($rule->kondisi_if, true) : $rule->kondisi_if,
-                'then' => is_string($rule->hasil_then) ? json_decode($rule->hasil_then, true) : $rule->hasil_then,
-
+                'if' => is_string($rule->kondisi_if) ? json_decode($rule->kondisi_if, true) ?? [] : $rule->kondisi_if,
+                'then' => is_string($rule->hasil_then) ? json_decode($rule->hasil_then, true) ?? [] : $rule->hasil_then,
             ];
         })->toArray();
 
@@ -126,11 +115,8 @@ class UserKonsultasiController extends Controller
         do {
             $changed = false;
             foreach ($rules as $rule) {
-                // Cek apakah semua kondisi IF match dengan facts
-                $match = collect($rule['if'])->every(fn($v, $k) => isset($facts[$k]) && $facts[$k] == strtolower($v));
-
+                $match = collect($rule['if'])->every(fn($v, $k) => isset($facts[$k]) && strtolower($facts[$k]) == strtolower($v));
                 if ($match && !in_array($rule['nama'], $applied)) {
-                    // Tambahkan hasil THEN ke facts
                     foreach ($rule['then'] as $k => $v) {
                         $facts[$k] = $v;
                     }
@@ -143,14 +129,23 @@ class UserKonsultasiController extends Controller
         $data = $request->except(['jadwal_jam', 'gambar']);
         $data['jadwal_konsultasi'] = $request->jadwal_tanggal . ' ' . $request->jadwal_jam;
 
-        // Terapkan hasil dari facts jika ada
         if (isset($facts['kategori_kompleksitas'])) {
             $data['kompleksitas'] = $facts['kategori_kompleksitas'];
         }
 
         if (isset($facts['durasi_estimasi'])) {
-            $jam = explode(' ', $facts['durasi_estimasi'])[0];
-            $data['durasi_estimasi'] = Carbon::createFromTimeString($jam)->format('H:i');
+            try {
+                // Ambil angka dari string "8 jam"
+                preg_match('/\d+/', $facts['durasi_estimasi'], $matches);
+                $jam = isset($matches[0]) ? (int) $matches[0] : 0;
+
+                // Buat durasi dari jam ke format H:i
+                $durasi = Carbon::createFromTime(0, 0)->addHours($jam);
+                $data['durasi_estimasi'] = $durasi->format('H:i');
+            } catch (\Exception $e) {
+                Log::error('Gagal parsing durasi_estimasi: ' . $e->getMessage());
+                $data['durasi_estimasi'] = '03:00';
+            }
         }
 
         if (isset($facts['biaya_tambahan'])) {
@@ -161,36 +156,50 @@ class UserKonsultasiController extends Controller
         $data['durasi_estimasi'] = $data['durasi_estimasi'] ?? '03:00';
         $data['biaya_tambahan'] = $data['biaya_tambahan'] ?? 0;
 
-        // Rekomendasi artis
         if (isset($facts['artist_rekomendasi'])) {
             $kategori = strtolower($facts['artist_rekomendasi']);
             $tahunIni = Carbon::now()->year;
 
-            if ($kategori === 'senior') {
-                $artis = ArtisTato::all()->filter(function ($a) use ($tahunIni) {
+            $artis = ArtisTato::all()->filter(function ($a) use ($tahunIni, $kategori) {
+                if ($kategori === 'senior') {
                     return ($tahunIni - $a->tahun_menato) >= 5;
-                })->sortBy('tahun_menato')->first();
-            } elseif ($kategori === 'junior') {
-                $artis = ArtisTato::all()->filter(function ($a) use ($tahunIni) {
+                } elseif ($kategori === 'junior') {
                     return ($tahunIni - $a->tahun_menato) < 5;
-                })->sortByDesc('tahun_menato')->first();
-            } else {
-                $artis = null;
-            }
+                }
+                return false;
+            })->sortBy('tahun_menato')->first();
 
-            if ($artis) {
-                $data['id_artis_tato'] = $artis->id_artis_tato;
-            }
+            $data['id_artis_tato'] = $artis->id_artis_tato ?? ArtisTato::where('tahun_menato', '<', $tahunIni)->min('id_artis_tato');
         }
 
-        // Upload gambar
+        $mulai = Carbon::parse($data['jadwal_konsultasi']);
+        $selesai = (clone $mulai)->add(CarbonInterval::createFromFormat('H:i', $data['durasi_estimasi']));
+
+        // Cek bentrok dengan jadwal artis lain
+        $bentrok = Konsultasi::where('id_artis_tato', $data['id_artis_tato'])
+            ->whereDate('jadwal_konsultasi', $mulai->toDateString())
+            ->get()
+            ->filter(function ($konsultasi) use ($mulai, $selesai) {
+                $existingMulai = Carbon::parse($konsultasi->jadwal_konsultasi);
+                $existingSelesai = (clone $existingMulai)->add(CarbonInterval::createFromFormat('H:i', $konsultasi->durasi_estimasi ?? '03:00'));
+
+                // Cek jika waktu overlap
+                return $mulai < $existingSelesai && $selesai > $existingMulai;
+            });
+
+        if ($bentrok->isNotEmpty()) {
+            return redirect()->back()->withErrors([
+                'jadwal_konsultasi' => 'Jadwal reservasi sudah penuh pada waktu tersebut. Silakan pilih waktu lain.'
+            ])->withInput();
+        }
+
         if ($request->hasFile('gambar')) {
             $data['gambar'] = $request->file('gambar')->store('konsultasi', 'public');
         }
 
+
         Konsultasi::create($data);
 
-        // Redirect
         if ($request->user()->hasRole('Pengguna')) {
             return redirect()->route('konsultasi.index')->with('success', 'Konsultasi berhasil dibuat.');
         } elseif ($request->user()->hasRole('Admin')) {

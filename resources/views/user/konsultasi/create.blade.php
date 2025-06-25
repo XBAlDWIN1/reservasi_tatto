@@ -58,8 +58,8 @@
                         @enderror
                     </div>
                     <div>
-                        <x-input-label value="Desain" variant="primary" />
-                        <select name="jenis_desain" class="w-full border-none px-3 py-2 rounded-full">
+                        <x-input-label value="Jenis Desain" variant="primary" />
+                        <select name="jenis_desain" id="jenis_desain" class="w-full border-none px-3 py-2 rounded-full">
                             <option value="Flat">Flat</option>
                             <option value="3D">3D</option>
                             <option value="Realistic">Realistic</option>
@@ -71,7 +71,7 @@
                     </div>
                     <div class="space-y-2">
                         <x-input-label value="Warna Tato" variant="primary" />
-                        <select name="warna" class="w-full border-none px-3 py-2 rounded-full">
+                        <select name="warna" id="warna" class="w-full border-none px-3 py-2 rounded-full">
                             <option value="Satu Warna">Satu Warna</option>
                             <option value="Warna">Lebih dari Satu Warna</option>
                         </select>

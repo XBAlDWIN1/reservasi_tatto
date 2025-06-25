@@ -44,7 +44,9 @@
                     @forelse($konsultasis as $konsultasi)
                     <tr class="border-t">
                         <td class="p-2">{{ $konsultasi->pengguna->name }}</td>
-                        <td class="p-2">{{ $konsultasi->artisTato->nama_artis_tato }}</td>
+                        <td class="p-2">
+                            {{ optional($konsultasi->artisTato)->nama_artis_tato ?? 'Belum ditentukan' }}
+                        </td>
                         <td class="p-2">{{ $konsultasi->panjang }} x {{$konsultasi->lebar}}</td>
                         <td class="p-2">{{ $konsultasi->lokasiTato->nama_lokasi_tato }}</td>
                         <td class="p-2">{{ $konsultasi->kategori->nama_kategori }}</td>
