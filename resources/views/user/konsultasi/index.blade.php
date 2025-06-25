@@ -21,7 +21,7 @@
                 <!-- Informasi Konsultasi -->
                 <div class="flex-1">
                     <div class="flex items-center justify-between mb-2">
-                        <h3 class="text-xl font-semibold text-gray-900">
+                        <h3 class="text-xl font-semibold text-gray-900">Artis Tato:
                             {{ $konsultasi->artisTato->nama_artis_tato ?? 'Belum Ditentukan' }}
                         </h3>
                         <span class="text-sm px-3 py-1 rounded-full 
