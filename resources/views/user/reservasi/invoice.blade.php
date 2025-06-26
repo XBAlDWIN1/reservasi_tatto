@@ -53,7 +53,9 @@
                 <th>Teknik</th>
                 <th>Lokasi Tato</th>
                 <th>Ukuran Tato</th>
-                <th>Subtotal</th>
+                <th>Biaya Dasar</th>
+                <th>Biaya Tambahan</th>
+                <th>Terbilang</th>
             </tr>
         </thead>
         <tbody>

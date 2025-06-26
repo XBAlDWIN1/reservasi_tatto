@@ -35,7 +35,7 @@
                         <td class="p-2">{{ $portfolio->judul }}</td>
                         <td class="p-2">{{ $portfolio->deskripsi }}</td>
                         <td class="p-2">
-                            <img src="{{ asset('storage/portfolio/' . $portfolio->gambar) }}" alt="gambar" class="rounded w-32">
+                            <img src="{{ asset('storage/' . $portfolio->gambar) }}" alt="gambar" class="rounded w-32">
                         </td>
                         <td class="p-2 space-x-2">
                             <button @click='setEdit(@json($portfolio))' class="text-blue-600">Edit</button>

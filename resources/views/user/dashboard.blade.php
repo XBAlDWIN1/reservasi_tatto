@@ -15,7 +15,7 @@
                 </div>
                 <div>
                     <h3 class="text-lg font-semibold text-gray-800">Buat Konsultasi Baru</h3>
-                    <a href="{{ route('artis.list') }}"
+                    <a href="{{ route('konsultasi.create') }}"
                         class="text-sm text-blue-600 hover:underline">Mulai Sekarang →</a>
                 </div>
             </div>

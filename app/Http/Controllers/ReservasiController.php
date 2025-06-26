@@ -125,8 +125,8 @@ class ReservasiController extends Controller
     {
         $reservasi = Reservasi::findOrFail($id);
 
-        if ($reservasi->konsultasi) {
-            return redirect()->back()->with('error', 'Reservasi tidak dapat dihapus karena masih terhubung dengan data konsultasi.');
+        if ($reservasi->pembayaran) {
+            return redirect()->back()->with('error', 'Reservasi tidak dapat dihapus karena memiliki data pembayaran.');
         }
 
         $reservasi->delete();
