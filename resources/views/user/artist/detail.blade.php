@@ -7,15 +7,29 @@
             <div class="flex-1">
                 <h2 class="text-3xl font-bold text-gray-800">{{ $artist->nama_artis_tato }}</h2>
                 <p class="text-sm text-gray-500 mb-2">Tahun mulai menato: {{ $artist->tahun_menato }}</p>
-
-                <div class="flex space-x-4 mt-2">
-                    @if($artist->instagram)
-                    <a href="{{ $artist->instagram }}" target="_blank" class="text-blue-600 hover:underline">Instagram</a>
-                    @endif
-                    @if($artist->tiktok)
-                    <a href="{{ $artist->tiktok }}" target="_blank" class="text-pink-600 hover:underline">TikTok</a>
-                    @endif
+                <p class="text-sm text-gray-500 mb-1 font-semibold">Skill :</p>
+                <div class="mb-3 text-center">
+                    <div class="flex flex-wrap gap-1">
+                        @foreach ($artist->artisKategoris as $artisKategori)
+                        <span class="inline-block bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded-full">
+                            {{ $artisKategori->kategori->nama_kategori }}
+                        </span>
+                        @endforeach
+                    </div>
                 </div>
+                @if ($artist->instagram)
+                <p class="text-sm text-gray-500 mb-1">
+                    <span class="font-semibold text-gray-700">Instagram:</span>
+                    <a href="https://instagram.com/{{ $artist->instagram }}" target="_blank" class="text-orange-500 hover:underline">{{ '@' . $artist->instagram }}</a>
+                </p>
+                @endif
+
+                @if ($artist->tiktok)
+                <p class="text-sm text-gray-500 mb-3">
+                    <span class="font-semibold text-gray-700">TikTok:</span>
+                    <a href="https://tiktok.com/@{{ $artist->tiktok }}" target="_blank" class="text-orange-500 hover:underline">{{ '@' . $artist->tiktok }}</a>
+                </p>
+                @endif
             </div>
         </div>
 

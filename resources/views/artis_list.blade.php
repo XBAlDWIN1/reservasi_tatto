@@ -1,7 +1,7 @@
 <x-home-layout>
     <div class="max-w-7xl mx-auto p-6">
         <!-- Form Search -->
-        <form method="GET" action="{{ route('artis.list') }}" class="mb-8">
+        <!-- <form method="GET" action="{{ route('artis.list') }}" class="mb-8">
             <div class="flex items-center space-x-3">
                 <input
                     type="text"
@@ -13,7 +13,7 @@
                     Cari
                 </x-primary-button>
             </div>
-        </form>
+        </form> -->
 
         <!-- Gallery Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
@@ -29,7 +29,7 @@
                     <h3 class="text-lg font-bold text-gray-800 mb-3">{{ $artis->nama_artis_tato }}</h3>
 
                     <p class="text-sm text-gray-500 mb-2">
-                        <span class="font-semibold text-gray-700">Tahun Menato:</span> {{ $artis->tahun_menato }}
+                        <span class="font-semibold text-gray-700">Tahun Mulai Menato:</span> {{ $artis->tahun_menato }}
                     </p>
 
                     <div class="mb-3 text-center">
