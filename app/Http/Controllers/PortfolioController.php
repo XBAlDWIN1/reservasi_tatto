@@ -127,6 +127,20 @@ class PortfolioController extends Controller
     public function gallery()
     {
         $portfolios = Portfolio::with('artisTato')->latest()->paginate(10);
+        // dd($portfolios);
         return view('gallery', compact('portfolios'));
+    }
+    public function showArtist($id_portfolio)
+    {
+        $portfolio = Portfolio::with('artisTato.portfolios')->findOrFail($id_portfolio);
+        if (!$portfolio) {
+            return redirect()->route('gallery')->with('error', 'Portofolio tidak ditemukan.');
+        }
+
+        $artist = $portfolio->artisTato;
+        $relatedPortfolios = $artist->portfolios;
+
+
+        return view('user.artist.detail', compact('artist', 'relatedPortfolios'));
     }
 }

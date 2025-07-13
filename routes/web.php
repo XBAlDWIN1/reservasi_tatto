@@ -25,14 +25,17 @@ Route::get('/gallery', [PortfolioController::class, 'gallery'])->name('gallery')
 Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
 Route::post('/contact/send', [ContactController::class, 'send'])->name('contact.send');
 
+Route::get('/artis_list', [ArtisTatoController::class, 'artis_list'])->name('artis.list');
+Route::get('/portfolio/{id_portfolio}', [PortfolioController::class, 'showArtist'])->name('portfolio.artist');
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'role:Admin|Pengelola|Pengguna'])->name('dashboard');
+
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::get('artis_list', [ArtisTatoController::class, 'artis_list'])->name('artis.list');
+
 
     Route::resource('konsultasi', UserKonsultasiController::class);
     Route::prefix('reservasi')->name('user.reservasi.')->group(function () {

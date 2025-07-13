@@ -72,6 +72,7 @@ class DatabaseSeeder extends Seeder
 
         // create artis tato
         ArtisTato::create([
+            'id_artis_tato' => 1,
             'nama_artis_tato' => 'Artis Tato 1',
             'tahun_menato' => 2015,
             'instagram' => 'artis1',
@@ -79,6 +80,7 @@ class DatabaseSeeder extends Seeder
             'gambar' => 'artis_tato/artist1.jpg',
         ]);
         ArtisTato::create([
+            'id_artis_tato' => 2,
             'nama_artis_tato' => 'Artis Tato 2',
             'tahun_menato' => 2018,
             'instagram' => 'artis2',
@@ -86,6 +88,7 @@ class DatabaseSeeder extends Seeder
             'gambar' => 'artis_tato/artist2.jpg',
         ]);
         ArtisTato::create([
+            'id_artis_tato' => 3,
             'nama_artis_tato' => 'Artis Tato 3',
             'tahun_menato' => 2023,
             'instagram' => 'artis3',
@@ -133,18 +136,21 @@ class DatabaseSeeder extends Seeder
 
         // create portfolio
         Portfolio::create([
+            'id_portfolio' => 1,
             'id_artis_tato' => 1,
             'judul' => 'Portfolio Artis Tato 1',
             'gambar' => 'portfolio/portfolio1.jpg',
             'deskripsi' => 'Portfolio Artis Tato 1',
         ]);
         Portfolio::create([
+            'id_portfolio' => 2,
             'id_artis_tato' => 2,
             'judul' => 'Portfolio Artis Tato 2',
             'gambar' => 'portfolio/portfolio2.jpg',
             'deskripsi' => 'Portfolio Artis Tato 2',
         ]);
         Portfolio::create([
+            'id_portfolio' => 3,
             'id_artis_tato' => 3,
             'judul' => 'Portfolio Artis Tato 3',
             'gambar' => 'portfolio/portfolio3.jpg',

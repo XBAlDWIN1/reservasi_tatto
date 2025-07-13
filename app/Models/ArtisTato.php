@@ -22,4 +22,9 @@ class ArtisTato extends Model
     {
         return $this->hasMany(ArtisKategori::class, 'id_artis_tato', 'id_artis_tato');
     }
+
+    public function portfolios()
+    {
+        return $this->hasMany(Portfolio::class, 'id_artis_tato', 'id_artis_tato');
+    }
 }
