@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\LokasiTato;
 use App\Models\Kategori;
 use App\Models\ArtisTato;
+use App\Models\Portfolio;
 use App\Models\RuleSpk;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -54,8 +55,9 @@ class UserKonsultasiController extends Controller
     {
         $lokasi_tatos = LokasiTato::all();
         $kategoris = Kategori::all();
+        $portfolios = Portfolio::all();
 
-        return view('user.konsultasi.create', compact('lokasi_tatos', 'kategoris'));
+        return view('user.konsultasi.create', compact('lokasi_tatos', 'portfolios', 'kategoris'));
     }
 
     public function store(Request $request)
@@ -66,12 +68,22 @@ class UserKonsultasiController extends Controller
             'id_kategori' => 'required',
             'panjang' => 'required|numeric',
             'lebar' => 'required|numeric',
-            'gambar' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'gambar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'gambar_galeri' => 'nullable|string',
             'jadwal_tanggal' => 'required|date|after_or_equal:today',
-            'jadwal_jam' => 'required|date_format:H:i',
+            'jadwal_jam' => ['required', 'date_format:H:i', function ($attribute, $value, $fail) {
+                if ($value < '09:00' || $value > '17:00') {
+                    $fail('Waktu harus antara 09:00 dan 17:00.');
+                }
+            }],
             'warna' => 'required|in:Warna,Satu Warna',
             'jenis_desain' => 'required|string'
         ]);
+
+        // Validasi tambahan: pastikan salah satu gambar tersedia
+        if (!$request->hasFile('gambar') && !$request->gambar_galeri) {
+            return redirect()->back()->withErrors(['gambar' => 'Gambar harus diunggah atau dipilih dari galeri.'])->withInput();
+        }
 
         $panjang = $request->panjang;
         $lebar = $request->lebar;
@@ -79,13 +91,12 @@ class UserKonsultasiController extends Controller
 
         if ($luas < 50) {
             $ukuran = 'kecil';
-        } elseif ($luas >= 50 && $luas <= 70) {
+        } elseif ($luas <= 70) {
             $ukuran = 'sedang';
         } else {
             $ukuran = 'besar';
         }
 
-        // Ambil nama lokasi dari ID
         $lokasi = LokasiTato::find($request->id_lokasi_tato);
 
         $facts = [
@@ -118,7 +129,7 @@ class UserKonsultasiController extends Controller
             }
         } while ($changed);
 
-        $data = $request->except(['jadwal_jam', 'gambar']);
+        $data = $request->except(['jadwal_jam', 'gambar', 'gambar_galeri']);
         $data['jadwal_konsultasi'] = $request->jadwal_tanggal . ' ' . $request->jadwal_jam;
 
         if (isset($facts['kategori_kompleksitas'])) {
@@ -127,11 +138,8 @@ class UserKonsultasiController extends Controller
 
         if (isset($facts['durasi_estimasi'])) {
             try {
-                // Ambil angka dari string "8 jam"
                 preg_match('/\d+/', $facts['durasi_estimasi'], $matches);
                 $jam = isset($matches[0]) ? (int) $matches[0] : 0;
-
-                // Buat durasi dari jam ke format H:i
                 $durasi = Carbon::createFromTime(0, 0)->addHours($jam);
                 $data['durasi_estimasi'] = $durasi->format('H:i');
             } catch (\Exception $e) {
@@ -148,7 +156,6 @@ class UserKonsultasiController extends Controller
         $data['durasi_estimasi'] = $data['durasi_estimasi'] ?? '03:00';
         $data['biaya_tambahan'] = $data['biaya_tambahan'] ?? 0;
 
-        // Default ke artis pertama jika tidak ada rekomendasi
         if (isset($facts['artist_rekomendasi'])) {
             $kategori = strtolower($facts['artist_rekomendasi']);
             $tahunIni = Carbon::now()->year;
@@ -162,12 +169,10 @@ class UserKonsultasiController extends Controller
                 return false;
             })->sortBy('tahun_menato')->first();
 
-            $data['id_artis_tato'] = $artis->id_artis_tato;
+            $data['id_artis_tato'] = $artis->id_artis_tato ?? null;
         }
 
-        // ✅ Tambahan fallback jika `id_artis_tato` belum terisi
         if (!isset($data['id_artis_tato'])) {
-            // Pakai default artis pertama
             $defaultArtis = ArtisTato::orderBy('tahun_menato', 'asc')->first();
             if (!$defaultArtis) {
                 return redirect()->back()->withErrors([
@@ -180,15 +185,12 @@ class UserKonsultasiController extends Controller
         $mulai = Carbon::parse($data['jadwal_konsultasi']);
         $selesai = (clone $mulai)->add(CarbonInterval::createFromFormat('H:i', $data['durasi_estimasi']));
 
-        // Cek bentrok dengan jadwal artis lain
         $bentrok = Konsultasi::where('id_artis_tato', $data['id_artis_tato'])
             ->whereDate('jadwal_konsultasi', $mulai->toDateString())
             ->get()
             ->filter(function ($konsultasi) use ($mulai, $selesai) {
                 $existingMulai = Carbon::parse($konsultasi->jadwal_konsultasi);
                 $existingSelesai = (clone $existingMulai)->add(CarbonInterval::createFromFormat('H:i', $konsultasi->durasi_estimasi ?? '03:00'));
-
-                // Cek jika waktu overlap
                 return $mulai < $existingSelesai && $selesai > $existingMulai;
             });
 
@@ -200,8 +202,11 @@ class UserKonsultasiController extends Controller
 
         if ($request->hasFile('gambar')) {
             $data['gambar'] = $request->file('gambar')->store('konsultasi', 'public');
+        } elseif ($request->gambar_galeri) {
+            // Ambil path dari URL asset galeri
+            $path = str_replace(asset('storage') . '/', '', $request->gambar_galeri);
+            $data['gambar'] = $path;
         }
-
 
         Konsultasi::create($data);
 
