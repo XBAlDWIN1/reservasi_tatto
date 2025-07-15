@@ -176,7 +176,4 @@
             reader.readAsDataURL(event.target.files[0]);
         }
     </script>
-
-    <!-- Tambahkan Alpine jika belum -->
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </x-home-layout>
