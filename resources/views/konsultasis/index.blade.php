@@ -29,15 +29,71 @@
             <table class="w-full border text-sm">
                 <thead class="bg-gray-100">
                     <tr>
-                        <th class="p-2 text-left">Nama</th>
-                        <th class="p-2 text-left">Artis</th>
-                        <th class="p-2 text-left">Ukuran</th>
-                        <th class="p-2 text-left">Lokasi</th>
-                        <th class="p-2 text-left">Kategori</th>
-                        <th class="p-2 text-left">Tanggal</th>
-                        <th class="p-2 text-left">Status</th>
-                        <th class="p-2 text-left">Referensi</th>
-                        <th class="p-2 text-left">Aksi</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <a href="{{ route('konsultasis.index', ['search' => request('search'), 'sort_by' => 'nama', 'order' => request('sort_by') === 'nama' && request('order') === 'asc' ? 'desc' : 'asc']) }}" class="flex items-center space-x-1 hover:text-gray-700">
+                                <span>Nama</span>
+                                @if(request('sort_by') === 'nama')
+                                <ion-icon name="{{ request('order') === 'asc' ? 'caret-up-outline' : 'caret-down-outline' }}"></ion-icon>
+                                @else
+                                <ion-icon name="swap-vertical-outline"></ion-icon> {{-- Icon default sort --}}
+                                @endif
+                            </a>
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <a href="{{ route('konsultasis.index', ['search' => request('search'), 'sort_by' => 'artis', 'order' => request('sort_by') === 'artis' && request('order') === 'asc' ? 'desc' : 'asc']) }}" class="flex items-center space-x-1 hover:text-gray-700">
+                                <span>Artis</span>
+                                @if(request('sort_by') === 'artis')
+                                <ion-icon name="{{ request('order') === 'asc' ? 'caret-up-outline' : 'caret-down-outline' }}"></ion-icon>
+                                @else
+                                <ion-icon name="swap-vertical-outline"></ion-icon>
+                                @endif
+                            </a>
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <span>Ukuran</span> {{-- Tidak dapat diurutkan --}}
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <a href="{{ route('konsultasis.index', ['search' => request('search'), 'sort_by' => 'lokasi', 'order' => request('sort_by') === 'lokasi' && request('order') === 'asc' ? 'desc' : 'asc']) }}" class="flex items-center space-x-1 hover:text-gray-700">
+                                <span>Lokasi</span>
+                                @if(request('sort_by') === 'lokasi')
+                                <ion-icon name="{{ request('order') === 'asc' ? 'caret-up-outline' : 'caret-down-outline' }}"></ion-icon>
+                                @else
+                                <ion-icon name="swap-vertical-outline"></ion-icon>
+                                @endif
+                            </a>
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <a href="{{ route('konsultasis.index', ['search' => request('search'), 'sort_by' => 'kategori', 'order' => request('sort_by') === 'kategori' && request('order') === 'asc' ? 'desc' : 'asc']) }}" class="flex items-center space-x-1 hover:text-gray-700">
+                                <span>Kategori</span>
+                                @if(request('sort_by') === 'kategori')
+                                <ion-icon name="{{ request('order') === 'asc' ? 'caret-up-outline' : 'caret-down-outline' }}"></ion-icon>
+                                @else
+                                <ion-icon name="swap-vertical-outline"></ion-icon>
+                                @endif
+                            </a>
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <a href="{{ route('konsultasis.index', ['search' => request('search'), 'sort_by' => 'tanggal', 'order' => request('sort_by') === 'tanggal' && request('order') === 'asc' ? 'desc' : 'asc']) }}" class="flex items-center space-x-1 hover:text-gray-700">
+                                <span>Tanggal</span>
+                                @if(request('sort_by') === 'tanggal')
+                                <ion-icon name="{{ request('order') === 'asc' ? 'caret-up-outline' : 'caret-down-outline' }}"></ion-icon>
+                                @else
+                                <ion-icon name="swap-vertical-outline"></ion-icon>
+                                @endif
+                            </a>
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <a href="{{ route('konsultasis.index', ['search' => request('search'), 'sort_by' => 'status', 'order' => request('sort_by') === 'status' && request('order') === 'asc' ? 'desc' : 'asc']) }}" class="flex items-center space-x-1 hover:text-gray-700">
+                                <span>Status</span>
+                                @if(request('sort_by') === 'status')
+                                <ion-icon name="{{ request('order') === 'asc' ? 'caret-up-outline' : 'caret-down-outline' }}"></ion-icon>
+                                @else
+                                <ion-icon name="swap-vertical-outline"></ion-icon>
+                                @endif
+                            </a>
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Referensi</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -82,8 +138,9 @@
             </table>
 
             <div class="mt-4">
-                {{ $konsultasis->appends(['search' => request('search')])->links() }}
+                {{ $konsultasis->appends(request()->only(['search', 'sort_by', 'order']))->links() }}
             </div>
+
 
             @include('konsultasis.partials.add-modal')
             @include('konsultasis.partials.edit-modal')
@@ -139,9 +196,9 @@
                 },
 
                 setEdit(data) {
-                    let [tanggal, jam] = data.jadwal_konsultasi.split(' '); // ✨ split disini
+                    let [tanggal, jam] = data.jadwal_konsultasi.split(' ');
                     // format jam HH:MM:SS menjadi HH:MM
-                    jam = jam.split(':').slice(0, 2).join(':'); // ✨ split disini
+                    jam = jam.split(':').slice(0, 2).join(':');
                     this.konsultasi = {
                         id_konsultasi: data.id_konsultasi,
                         id_pengguna: data.id_pengguna,
@@ -151,8 +208,8 @@
                         panjang: data.panjang,
                         lebar: data.lebar,
                         jadwal_konsultasi: data.jadwal_konsultasi,
-                        jadwal_tanggal: tanggal, // isi ke tanggal
-                        jadwal_jam: jam, // isi ke jam
+                        jadwal_tanggal: tanggal,
+                        jadwal_jam: jam,
                         gambar: null,
                         status: data.status,
                     };

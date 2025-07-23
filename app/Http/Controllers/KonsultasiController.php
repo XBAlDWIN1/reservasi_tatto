@@ -29,7 +29,42 @@ class KonsultasiController extends Controller
                     });
             });
         }
-        $konsultasis = $query->paginate(10);
+        // Sorting logic
+        $sortBy = $request->input('sort_by');
+        $order = $request->input('order', 'asc');
+
+        switch ($sortBy) {
+            case 'nama':
+                $query->join('users', 'konsultasis.id_pengguna', '=', 'users.id')
+                    ->orderBy('users.name', $order)
+                    ->select('konsultasis.*');
+                break;
+            case 'artis':
+                $query->join('artis_tatos', 'konsultasis.id_artis_tato', '=', 'artis_tatos.id_artis_tato')
+                    ->orderBy('artis_tatos.nama_artis_tato', $order)
+                    ->select('konsultasis.*');
+                break;
+            case 'lokasi':
+                $query->join('lokasi_tatos', 'konsultasis.id_lokasi_tato', '=', 'lokasi_tatos.id_lokasi_tato')
+                    ->orderBy('lokasi_tatos.nama_lokasi_tato', $order)
+                    ->select('konsultasis.*');
+                break;
+            case 'kategori':
+                $query->join('kategoris', 'konsultasis.id_kategori', '=', 'kategoris.id_kategori')
+                    ->orderBy('kategoris.nama_kategori', $order)
+                    ->select('konsultasis.*');
+                break;
+            case 'tanggal':
+                $query->orderBy('jadwal_konsultasi', $order);
+                break;
+            case 'status':
+                $query->orderBy('status', $order);
+                break;
+            default:
+                $query->orderBy('konsultasis.created_at', 'desc');
+        }
+
+        $konsultasis = $query->paginate(10)->appends($request->only(['search', 'sort_by', 'order']));
         return view('konsultasis.index', [
             'konsultasis' => $konsultasis,
             'pengguna' => $pengguna,

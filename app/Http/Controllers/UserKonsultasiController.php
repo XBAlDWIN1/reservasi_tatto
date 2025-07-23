@@ -25,6 +25,7 @@ class UserKonsultasiController extends Controller
         // Ambil semua konsultasi milik user, dengan relasi terkait
         $konsultasis = Konsultasi::with(['reservasi', 'artisTato', 'lokasiTato', 'kategori'])
             ->where('id_pengguna', $userId)
+            ->orderBy('created_at', 'desc')
             ->paginate(10);
 
         foreach ($konsultasis as $konsultasi) {
