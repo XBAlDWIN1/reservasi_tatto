@@ -2,31 +2,40 @@
     <!-- Tambahkan x-data ke wrapper paling luar -->
     <div
         x-data="{
-   open: false,
-   preview: null,
-   gambar: null,
-   selectFromGallery(url) {
-     this.preview = url;
-     document.getElementById('imagePreview').src = url;
-     document.getElementById('imagePreview').classList.remove('hidden');
-     document.getElementById('gambarGaleri').value = url;
-     document.getElementById('gambar').value = ''; // kosongkan file input jika sebelumnya upload manual
-     this.open = false;
-     this.gambar = null;
-   },
-   handleFileUpload(event) {
-     this.gambar = event.target.files[0];
-     const reader = new FileReader();
-     reader.onload = () => {
-       this.preview = reader.result;
-       document.getElementById('imagePreview').src = reader.result;
-       document.getElementById('imagePreview').classList.remove('hidden');
-       document.getElementById('gambarGaleri').value = '';
-     };
-     reader.readAsDataURL(this.gambar);
-   }
- }"
+        open: false,
+        preview: '{{ old('gambar_galeri') ?? '' }}',
+        gambar: null,
+        selectFromGallery(url) {
+            this.preview = url;
+            document.getElementById('imagePreview').src = url;
+            document.getElementById('imagePreview').classList.remove('hidden');
+            document.getElementById('gambarGaleri').value = url;
+            document.getElementById('gambar').value = '';
+            this.gambar = null;
+            this.open = false;
+        },
+        handleFileUpload(event) {
+            this.gambar = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = () => {
+                this.preview = reader.result;
+                document.getElementById('imagePreview').src = reader.result;
+                document.getElementById('imagePreview').classList.remove('hidden');
+                document.getElementById('gambarGaleri').value = '';
+            };
+            reader.readAsDataURL(this.gambar);
+        }
+    }"
+        x-init="
+        () => {
+            if (preview) {
+                document.getElementById('imagePreview').src = preview;
+                document.getElementById('imagePreview').classList.remove('hidden');
+                document.getElementById('gambarGaleri').value = preview;
+            }
+        }"
         class="min-h-screen flex items-center justify-center bg-orange-100 px-4">
+
         <div class="bg-[#f9c6a1] shadow-xl rounded-xl p-6 flex flex-col md:flex-row w-full max-w-5xl relative overflow-hidden">
 
             <!-- Background logo -->
@@ -48,11 +57,11 @@
                         <x-input-label value="Ukuran Tato" variant="primary" />
                         <div class="flex space-x-2 w-full">
                             <div>
-                                <x-text-input type="number" name="panjang" placeholder="Panjang (cm)" required />
+                                <x-text-input type="number" value="{{ old('panjang') }}" name="panjang" placeholder="Panjang (cm)" required />
                                 @error('panjang') <div class="text-red-500 text-xs mt-1">{{ $message }}</div> @enderror
                             </div>
                             <div>
-                                <x-text-input type="number" name="lebar" placeholder="Lebar (cm)" required />
+                                <x-text-input type="number" value="{{ old('lebar') }}" name="lebar" placeholder="Lebar (cm)" required />
                                 @error('lebar') <div class="text-red-500 text-xs mt-1">{{ $message }}</div> @enderror
                             </div>
                         </div>
@@ -63,7 +72,10 @@
                         <x-input-label value="Lokasi Tato" variant="primary" />
                         <select name="id_lokasi_tato" class="w-full border-none px-3 py-2 rounded-full">
                             @foreach ($lokasi_tatos as $lokasi)
-                            <option value="{{ $lokasi->id_lokasi_tato }}">{{ $lokasi->nama_lokasi_tato }}</option>
+                            <option value="{{ $lokasi->id_lokasi_tato }}"
+                                {{ old('id_lokasi_tato') == $lokasi->id_lokasi_tato ? 'selected' : '' }}>
+                                {{ $lokasi->nama_lokasi_tato }}
+                            </option>
                             @endforeach
                         </select>
                         @error('id_lokasi_tato') <div class="text-red-500 text-xs mt-1">{{ $message }}</div> @enderror
@@ -74,7 +86,10 @@
                         <x-input-label value="Kategori" variant="primary" />
                         <select name="id_kategori" class="w-full border-none px-3 py-2 rounded-full">
                             @foreach ($kategoris as $kategori)
-                            <option value="{{ $kategori->id_kategori }}">{{ $kategori->nama_kategori }}</option>
+                            <option value="{{ $kategori->id_kategori }}"
+                                {{ old('id_kategori') == $kategori->id_kategori ? 'selected' : '' }}>
+                                {{ $kategori->nama_kategori }}
+                            </option>
                             @endforeach
                         </select>
                         @error('id_kategori') <div class="text-red-500 text-xs mt-1">{{ $message }}</div> @enderror
@@ -105,15 +120,18 @@
                     <!-- Jadwal -->
                     <div>
                         <x-input-label value="Tanggal & Jam" variant="primary" />
+                        @error('jadwal_konsultasi') <div class="text-red-500 text-xs mt-1">{{ $message }}</div> @enderror
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <x-text-input type="date" name="jadwal_tanggal" min="{{ \Carbon\Carbon::now()->toDateString() }}" class="w-full" />
+                                <x-text-input type="date" value="{{ old('jadwal_tanggal') }}" name="jadwal_tanggal" min="{{ \Carbon\Carbon::now()->toDateString() }}" class="w-full" />
                                 @error('jadwal_tanggal') <div class="text-red-500 text-xs mt-1">{{ $message }}</div> @enderror
                             </div>
                             <div>
                                 <select name="jadwal_jam" required class="w-full border-none px-3 py-2 rounded-full">
                                     @foreach (['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00'] as $jam)
-                                    <option value="{{ $jam }}">{{ $jam }}</option>
+                                    <option value="{{ $jam }}" {{ old('jadwal_jam') == $jam ? 'selected' : '' }}>
+                                        {{ $jam }}
+                                    </option>
                                     @endforeach
                                 </select>
                                 @error('jadwal_jam') <div class="text-red-500 text-xs mt-1">{{ $message }}</div> @enderror
@@ -125,14 +143,6 @@
                 <!-- Kanan: Upload & Gallery Trigger -->
                 <div class="md:w-1/2 flex flex-col items-center justify-center text-center space-y-4">
                     <x-input-label for="gambar" value="Gambar Referensi" variant="primary" />
-                    <!-- Upload Box -->
-                    <!-- <label for="gambar" class="cursor-pointer w-full max-w-sm flex flex-col items-center justify-center border border-dashed border-orange-400 bg-white hover:bg-orange-50 rounded-lg px-4 py-6 transition duration-300">
-                        <ion-icon name="cloud-upload-outline" class="text-orange-500 text-4xl mb-2"></ion-icon>
-                        <span class="text-sm text-orange-600">Klik untuk unggah gambar</span>
-                        <input type="file" name="gambar" id="gambar" accept="image/*" class="hidden" onchange="previewImage(event)">
-                    </label> -->
-                    <!-- Preview -->
-                    <!-- <img id="imagePreview" class="w-48 h-48 object-cover rounded-lg shadow-md hidden" alt="Preview" x-show="preview"> -->
 
                     <!-- Upload Box -->
                     <label for="gambar" class="cursor-pointer w-full max-w-sm flex flex-col items-center justify-center border border-dashed border-orange-400 bg-white hover:bg-orange-50 rounded-lg px-4 py-6 transition duration-300">
@@ -184,20 +194,7 @@
         </div>
     </div>
 
-    <!-- Preview Gambar -->
     <script>
-        // function previewImage(event) {
-        //     const reader = new FileReader();
-        //     reader.onload = function() {
-        //         const img = document.getElementById('imagePreview');
-        //         img.src = reader.result;
-        //         img.classList.remove('hidden');
-        //         // Kosongkan input hidden gambar galeri jika user upload manual
-        //         document.getElementById('gambarGaleri').value = '';
-        //     };
-        //     reader.readAsDataURL(event.target.files[0]);
-        // }
-
         function previewImage(event) {
             const reader = new FileReader();
             reader.onload = function() {

@@ -139,23 +139,26 @@ class UserKonsultasiController extends Controller
 
         if (isset($facts['durasi_estimasi'])) {
             try {
+                // Pastikan durasi_estimasi adalah string yang dapat di-parse
                 preg_match('/\d+/', $facts['durasi_estimasi'], $matches);
                 $jam = isset($matches[0]) ? (int) $matches[0] : 0;
-                $durasi = Carbon::createFromTime(0, 0)->addHours($jam);
-                $data['durasi_estimasi'] = $durasi->format('H:i');
+                // Asumsi durasi_estimasi selalu dalam jam penuh atau format H:i
+                // Jika hanya angka jam, format ke H:i
+                $data['durasi_estimasi'] = sprintf('%02d:00', $jam);
             } catch (\Exception $e) {
                 Log::error('Gagal parsing durasi_estimasi: ' . $e->getMessage());
-                $data['durasi_estimasi'] = '03:00';
+                $data['durasi_estimasi'] = '03:00'; // Fallback default
             }
         }
+
+        // Pastikan nilai default jika tidak ada dari SPK
+        $data['kompleksitas'] = $data['kompleksitas'] ?? 'sedang';
+        $data['durasi_estimasi'] = $data['durasi_estimasi'] ?? '03:00';
+        $data['biaya_tambahan'] = $data['biaya_tambahan'] ?? 0;
 
         if (isset($facts['biaya_tambahan'])) {
             $data['biaya_tambahan'] = $facts['biaya_tambahan'];
         }
-
-        $data['kompleksitas'] = $data['kompleksitas'] ?? 'sedang';
-        $data['durasi_estimasi'] = $data['durasi_estimasi'] ?? '03:00';
-        $data['biaya_tambahan'] = $data['biaya_tambahan'] ?? 0;
 
         if (isset($facts['artist_rekomendasi'])) {
             $kategori = strtolower($facts['artist_rekomendasi']);
@@ -183,21 +186,55 @@ class UserKonsultasiController extends Controller
             $data['id_artis_tato'] = $defaultArtis->id_artis_tato;
         }
 
+        // --- Perbaikan Logika Deteksi Bentrok ---
         $mulai = Carbon::parse($data['jadwal_konsultasi']);
-        $selesai = (clone $mulai)->add(CarbonInterval::createFromFormat('H:i', $data['durasi_estimasi']));
+
+        // Pastikan durasi_estimasi selalu dalam format H:i (misal: "03:00")
+        // Jika durasi_estimasi dari database mungkin '03:00:00', kita perlu memotongnya
+        $durasiEstimasiString = $data['durasi_estimasi'];
+        if (str_contains($durasiEstimasiString, ':')) {
+            $parts = explode(':', $durasiEstimasiString);
+            $hours = (int) $parts[0];
+            $minutes = (int) ($parts[1] ?? 0);
+        } else {
+            // Fallback jika durasi_estimasi hanya angka jam
+            $hours = (int) $durasiEstimasiString;
+            $minutes = 0;
+        }
+        $selesai = (clone $mulai)->addHours($hours)->addMinutes($minutes);
+
 
         $bentrok = Konsultasi::where('id_artis_tato', $data['id_artis_tato'])
             ->whereDate('jadwal_konsultasi', $mulai->toDateString())
             ->get()
             ->filter(function ($konsultasi) use ($mulai, $selesai) {
                 $existingMulai = Carbon::parse($konsultasi->jadwal_konsultasi);
-                $existingSelesai = (clone $existingMulai)->add(CarbonInterval::createFromFormat('H:i', $konsultasi->durasi_estimasi ?? '03:00'));
+
+                // Ambil durasi_estimasi dari konsultasi yang ada, dengan fallback
+                $existingDurasiEstimasi = $konsultasi->durasi_estimasi ?? '03:00';
+
+                // Parsing durasi_estimasi yang ada dengan aman
+                $existingHours = 0;
+                $existingMinutes = 0;
+                if (str_contains($existingDurasiEstimasi, ':')) {
+                    $parts = explode(':', $existingDurasiEstimasi);
+                    $existingHours = (int) $parts[0];
+                    $existingMinutes = (int) ($parts[1] ?? 0);
+                } else {
+                    // Fallback jika durasi_estimasi hanya angka jam
+                    $existingHours = (int) $existingDurasiEstimasi;
+                    $existingMinutes = 0;
+                }
+
+                $existingSelesai = (clone $existingMulai)->addHours($existingHours)->addMinutes($existingMinutes);
+
+                // Logika deteksi bentrok
                 return $mulai < $existingSelesai && $selesai > $existingMulai;
             });
 
         if ($bentrok->isNotEmpty()) {
             return redirect()->back()->withErrors([
-                'jadwal_konsultasi' => 'Jadwal reservasi sudah penuh pada waktu tersebut. Silakan pilih waktu lain.'
+                'jadwal_konsultasi' => 'Jadwal konsultasi sudah penuh pada waktu tersebut untuk artis yang dipilih. Silakan pilih waktu lain.'
             ])->withInput();
         }
 
